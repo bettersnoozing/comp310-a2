@@ -3,6 +3,10 @@
 #include <stdio.h>
 #include "shellmemory.h"
 
+#define CODE_SIZE 1000
+static char *code_memory[CODE_SIZE] = {NULL}; 
+static int code_used = 0; //tracking how many lines stored so far
+
 struct memory_struct {
     char *var;
     char *value;
@@ -67,3 +71,60 @@ char *mem_get_value(char *var_in) {
     }
     return NULL;
 }
+
+//loading script file into code memory
+//start_index and nb_lines are filled (or -1 on fail)
+int store_script(const char *filename, int *start_index, int *nb_lines){
+    FILE *file = fopen(filename, "r");
+    if (!file){
+        return -1; 
+    }
+
+    int start = code_used; //index of first line of script
+    int lines = 0;
+    char line[100];
+
+    while (fgets(line, sizeof(line), file)) {
+        if (code_used >= CODE_SIZE) {     // out of memory
+            fclose(file);
+            // free any lines we already stored
+            for (int i = start; i < code_used; i++) {
+                free(code_memory[i]);
+                code_memory[i] = NULL;
+            }
+            code_used = start;
+            return -1; // out of memory
+        }
+        int len = strlen(line);
+        if (len > 0 && line[len-1] == '\n'){
+            line[len-1] = '\0'; //remove newline
+        }
+        code_memory[code_used] = strdup(line); //store line in code memory
+        code_used++;
+        lines++;
+}
+
+    fclose(file);
+    *start_index = start;
+    *nb_lines = lines;
+    return 0; 
+}
+
+//return pointer to line stored at given index
+char* get_line(int index){
+    if (index < 0 || index >= code_used){
+        return NULL;
+    }
+    return code_memory[index];
+}
+
+//freeing lines from start to start+len-1
+void free_lines(int start, int len){
+    for (int i=start; i<start + len; i++){
+        if (code_memory[i]){
+            free(code_memory[i]);
+            code_memory[i] = NULL;
+        }
+    }
+}
+

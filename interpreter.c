@@ -22,6 +22,10 @@
 
 #include "shellmemory.h"
 #include "shell.h"
+#include "pcb.h"
+#include "readyqueue.h"
+#include "scheduler.h"
+#include "shellmemory.h"
 
 int badcommand() {
     printf("Unknown Command\n");
@@ -354,29 +358,19 @@ int cd(char *path) {
     return 0;
 }
 
+//source: run a script as a process using the scheduler
 int source(char *script) {
-    int errCode = 0;
-    char line[MAX_USER_INPUT];
-    FILE *p = fopen(script, "rt");      // the program is in a file
+    int start, len;
 
-    if (p == NULL) {
-        return badcommandFileDoesNotExist();
+    //load entire script onto code memory
+    if (store_script(script, &start, &len) != 0) {
+        return badcommandFileDoesNotExist(); 
     }
 
-    fgets(line, MAX_USER_INPUT - 1, p);
-    while (1) {
-        errCode = parseInput(line);     // which calls interpreter()
-        memset(line, 0, sizeof(line));
-
-        if (feof(p)) {
-            break;
-        }
-        fgets(line, MAX_USER_INPUT - 1, p);
-    }
-
-    fclose(p);
-
-    return errCode;
+    PCB *process = make_pcb(start, len);
+    enqueue(process);
+    scheduler();    
+    return 0;
 }
 
 int run(char *args[], int arg_size) {

@@ -10,13 +10,14 @@
 #include "interpreter.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 void scheduler(){
-    while (!is_empty){
+    while (!is_empty()){
         PCB *curr = dequeue(); //get head process
 
         while (curr->pc < curr->code_len){
-            char *line = get_code_line(curr->start_index + curr->pc); //get line of code to execute
+            char *line = get_line(curr->start_index + curr->pc); //get line of code to execute
             if (line == NULL){
                 curr->pc++;
                 continue;

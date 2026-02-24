@@ -25,7 +25,6 @@
 #include "pcb.h"
 #include "readyqueue.h"
 #include "scheduler.h"
-#include "shellmemory.h"
 
 int badcommand() {
     printf("Unknown Command\n");

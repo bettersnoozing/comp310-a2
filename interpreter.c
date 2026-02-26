@@ -25,6 +25,7 @@
 #include "pcb.h"
 #include "readyqueue.h"
 #include "scheduler.h"
+#include "interpreter.h"
 
 //arguments for this are n number of files, and final arg is the scheduling type
 int exec_command(char *args[], int arg_count);
@@ -375,8 +376,9 @@ int source(char *script) {
     }
 
     PCB *process = make_pcb(start, len);
+    Policy policy = FCFS_POLICY;
     enqueue(process);
-    scheduler();    
+    scheduler(policy);    
     return 0;
 }
 
@@ -398,6 +400,8 @@ int exec_command(char *args[], int arg_count) {
         policy = SJF_POLICY;
     } else if (strcmp(policy_str, "RR") == 0) {
         policy = RR_POLICY;
+    } else if (strcmp(policy_str, "AGING") == 0) {
+        policy = AGING_POLICY;
     } else {
 	printf("Unknown policy\n");
 	return 1;
@@ -440,7 +444,9 @@ int exec_command(char *args[], int arg_count) {
     //creating pcb's and enqueueing them (fcfs order = order of args)
     for (int i = 0; i < num_progs; i++) {
         PCB *proc = make_pcb(starts[i], lens[i]);
-        if(policy == SJF_POLICY) {
+        if(policy == AGING_POLICY) {
+		enqueue_aging(proc);
+	} else if(policy == SJF_POLICY) {
 		enqueue_sjf(proc); //insert sorted by job length
 	} else {
 		enqueue(proc); //FCFS or RR

@@ -14,51 +14,79 @@
 
 #define RR_QUANTUM 2 //number of instructions per RR time slice
 
-void scheduler(Policy policy){
-    while (!is_empty()){
-        PCB *cur = dequeue(); //get head process
+void scheduler(Policy policy) {
+    while(!is_empty()) {
+        PCB *cur = dequeue(); // get the head process
 
-	if(policy == RR_POLICY) {
-		//RR: run up to 2 instructions
-		int instructions_to_run = RR_QUANTUM;
-		while(cur->pc < cur->code_len && instructions_to_run > 0) {
-			char *line = get_line(cur->start_index + cur->pc);
-			if(line) {
-				char *copy = strdup(line); //copy to avoid modification
-				if(copy) {
-					parseInput(copy); //execute line
-					free(copy);
-				}
-			}
+        if(policy == RR_POLICY) {
+            //RR:  run up to RR_QUANTUM instructions
+            int instructions_to_run = RR_QUANTUM;
 
-			cur->pc++; //advacne the program counter
-			instructions_to_run--; //decrement quantum
-		}
+            while(cur->pc < cur->code_len && instructions_to_run > 0) {
+                char *line = get_line(cur->start_index + cur->pc);
+                if(line) {
+                    char *copy = strdup(line); //copy to avoid modifications
+                    if(copy) {
+                        parseInput(copy); //execute the line
+                        free(copy);
+                    }
+                }
+                cur->pc++; //advance program counter
+                instructions_to_run--; //decrement quantum
+            }
 
-		if(cur->pc < cur->code_len) {
-			enqueue(cur); //RR uses FCFS for cycling
-		} else {
-			//process is finished so free code and PCB
-			free_lines(cur->start_index, cur->code_len);
-			free(cur);
-		}
-	} else {
+            if(cur->pc < cur->code_len) {
+                enqueue(cur); // not finished, put back in queue. RR uses FCFS for cycling
+            } else {
+                //process is finished so free code and PCB
+                free_lines(cur->start_index, cur->code_len);
+                free(cur);
+            }
+        }
+        else if(policy == AGING_POLICY) {
+            // Aging SJF: run 1 instruction per time slice
+            if(cur->pc < cur->code_len) {
+                char *line = get_line(cur->start_index + cur->pc);
+                if(line) {
+                    char *copy = strdup(line);
+                    if(copy) {
+                        parseInput(copy);
+                        free(copy);
+                    }
+                }
+                cur->pc++;
+            }
 
-	        while (curr->pc < curr->code_len){
-        	    char *line = get_line(curr->start_index + curr->pc); //get line of code to execute
-           	 	if (line == NULL){
-                		curr->pc++;
-                		continue;
-            		}
+            // check if process finished
+            if(cur->pc >= cur->code_len) {
+                free_lines(cur->start_index, cur->code_len);
+                free(cur);
+            } else {
+                // age all other processes in queue
+                age_ready_queue();
 
-            		char *copy = strdup(line); //making a copy to pass to parseInput to prevent modifications
-            		if (copy){ 
-                		parseInput(copy); 
-            			free(copy);
-            		}
-          		curr->pc++; //move to next line
-        	}
-        free_lines(curr->start_index, curr->code_len); //free code lines after finishing process
-        free(curr); //free pcb
+                // reinsert current job using sorted insert
+                enqueue_aging(cur);
+            }
+        }
+        else { 
+            while(cur->pc < cur->code_len) {
+                char *line = get_line(cur->start_index + cur->pc); //get line of code to execute
+                if(line == NULL) {
+                    cur->pc++;
+                    continue;
+                }
+
+                char *copy = strdup(line); //making a copy to pass to parseInput to prevent modifications
+                if(copy) {
+                    parseInput(copy);
+                    free(copy);
+                }
+                cur->pc++; //move to next line
+            }
+
+            free_lines(cur->start_index, cur->code_len); //free code lines after finishing process
+            free(cur); //free pcb
+        }
     }
 }

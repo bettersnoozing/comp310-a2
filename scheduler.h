@@ -5,10 +5,10 @@
 
 //Scheduler policies
 typedef enum {
-
-	FCFS_POLICY
-	SJF_POLICY
-	RR_POLICY
+	FCFS_POLICY,
+	SJF_POLICY,
+	RR_POLICY,
+	AGING_POLICY
 } Policy;
 
 

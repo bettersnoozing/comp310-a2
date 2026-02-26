@@ -41,7 +41,7 @@ void enqueue_sjf(PCB *process) {
 	//traverse the queue in order to find the insertion point
 	PCB *cur = head;
 	while(cur->next && cur->next->code_len <= process->code_len) {
-		cur = cur.next;
+		cur = cur->next;
 	}
 
 	process->next = cur->next;
@@ -49,6 +49,42 @@ void enqueue_sjf(PCB *process) {
 
 	//update the tail if inserted at the end
 	if(!process->next) tail = process;
+}
+
+//insert sorted by job score with the lowest first
+void enqueue_aging(PCB *process) {
+
+	if(!process) return;
+	if(!head || process->job_score < head->job_score) {
+		process->next = head;
+		head = process;
+		if (!tail) tail = head;
+		return;
+	}
+
+	PCB *cur = head;
+
+	//match example tie-breaking
+	while (cur->next && cur->next->job_score <= process->job_score) {
+		cur = cur->next;
+	}
+
+	process->next = cur->next;
+	cur->next = process;
+
+	if(!process->next) {
+		tail = process;
+	}
+}
+
+//decrease score of all jobs in queue except the running one
+void age_ready_queue() {
+
+	PCB *cur = head;
+	while(cur) {
+		if(cur->job_score > 0) cur->job_score--;
+		cur = cur->next;
+	}
 }
 
 PCB* dequeue(){

@@ -26,6 +26,9 @@
 #include "readyqueue.h"
 #include "scheduler.h"
 
+//arguments for this are n number of files, and final arg is the scheduling type
+int exec_command(char *args[], int arg_count);
+
 int badcommand() {
     printf("Unknown Command\n");
     return 1;
@@ -136,12 +139,17 @@ int interpreter(char *command_args[], int args_size) {
             return badcommand();
         return source(command_args[1]);
 
-    } else if (strcmp(command_args[0], "run") == 0) {
+    } else if (strcmp(command_args[0], "run") == 0) { //run = what assignment 1 accomplished
         if (args_size < 2)
             return badcommand();
         return run(&command_args[1], args_size - 1);
-
-    } else
+    
+    }else if (strcmp(command_args[0], "exec") == 0) { //exec = run multiple scripts concurrently as processes
+        if (args_size < 3) //at minimum must have "exec" + script + scheduling type 
+            return badcommand();
+        return exec_command(&command_args[1], args_size - 1); 
+        //NOTE TO AAHAAN: AS U KEEP WRITING MORE PARTS, U NEED TO UPDATE THE INTERPRETER SO IT CAN TAKE UR SCHEDULING TYPE
+    }else
         return badcommand();
 }
 
@@ -369,6 +377,66 @@ int source(char *script) {
     PCB *process = make_pcb(start, len);
     enqueue(process);
     scheduler();    
+    return 0;
+}
+
+// exec command- run multiple scripts concurrently 
+int exec_command(char *args[], int arg_count) {
+    //args are list of programs, then the scheduling type at the end (need to parse)
+    int num_progs = arg_count - 1;
+    char *policy = args[arg_count - 1];
+
+    // checking scheduling type. for now, it's only FCFS (first come first serve)
+    //NOTE TO AAHAAN: AS U KEEP WRITING MORE PARTS, U NEED TO UPDATE THIS PART SO IT CAN TAKE UR SCHEDULING TYPE
+    if (strcmp(policy, "FCFS") != 0) {
+        printf("Unknown Policy\n");
+        return 1;
+    }
+
+    //can only be at more 3 programs
+    if (num_progs < 1 || num_progs > 3) {
+        printf("Error: exec takes 1 to 3 programs\n");
+        return 1;
+    }
+
+    //checking for duplicate program names to avoid errors
+    for (int i = 0; i < num_progs; i++) {
+        for (int j = i + 1; j < num_progs; j++) {
+            if (strcmp(args[i], args[j]) == 0) {
+                printf("Error: duplicate program name\n");
+                return 1;
+            }
+        }
+    }
+
+    //array for loading results
+    int starts[3];
+    int lens[3];
+    int loaded = 0;   //#s successfully loaded so far
+
+    //load each script onto code memory (at fail print error and free)
+    for (int i = 0; i < num_progs; i++) {
+        if (store_script(args[i], &starts[i], &lens[i]) != 0) {
+            //loading fail
+            printf("Error: cannot load %s\n", args[i]);
+            for (int j = 0; j < loaded; j++) {
+                free_lines(starts[j], lens[j]);
+            }
+            return 1;
+        }
+        loaded++;
+    }
+
+    //creating pcb's and enqueueing them (fcfs order = order of args)
+    for (int i = 0; i < num_progs; i++) {
+        PCB *proc = make_pcb(starts[i], lens[i]);
+        enqueue(proc);
+    }
+
+    //execute all processes using scheduler until wait queue is empty
+    scheduler();
+
+    //if scheduler returns, all processes finished = success!!! 
     return 0;
 }
 

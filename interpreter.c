@@ -144,7 +144,6 @@ int interpreter(char *command_args[], int args_size) {
         if (args_size < 2)
             return badcommand();
         return run(&command_args[1], args_size - 1);
-    
     }else if (strcmp(command_args[0], "exec") == 0) { //exec = run multiple scripts concurrently as processes
         if (args_size < 3) //at minimum must have "exec" + script + scheduling type 
             return badcommand();
@@ -382,6 +381,9 @@ int source(char *script) {
     return 0;
 }
 
+//global flag for multi-thread scheduling
+int mt_enabled = 0; //the defaul is single-threaded
+
 // exec command- run multiple scripts concurrently 
 int exec_command(char *args[], int arg_count) {
     //args are list of programs, then the scheduling type at the end (need to parse)
@@ -400,6 +402,8 @@ int exec_command(char *args[], int arg_count) {
         policy = SJF_POLICY;
     } else if (strcmp(policy_str, "RR") == 0) {
         policy = RR_POLICY;
+    } else if (strcmp(policy_str, "RR30") == 0) {
+	policy = RR30_POLICY;
     } else if (strcmp(policy_str, "AGING") == 0) {
         policy = AGING_POLICY;
     } else {
@@ -414,6 +418,12 @@ int exec_command(char *args[], int arg_count) {
 	background = 1; //found the background flag
 	num_progs--; //adjust the number of programs to ignore #
    }
+
+    //Check for multi-threaded option
+    if(num_progs >= 1 && strcmp(args[num_progs], "MT") == 0) {
+	mt_enabled = 1;
+	num_progs--; //exclude MT from program count
+    }
 
     //can only be at more 3 programs
     if (num_progs < 1 || num_progs > 3) {
@@ -454,7 +464,7 @@ int exec_command(char *args[], int arg_count) {
    if(background) {
 	//the batch script starts at the line after this exec command
 	int batch_start, batch_len;
-	if(store_remaining_script(&batch_start, &bacth_len) == 0) {
+	if(store_remaining_script(&batch_start, &batch_len) == 0) {
 		batch_pcb = make_pcb(batch_start, batch_len);
 		enqueue(batch_pcb); //batch script runs first
 	} else {

@@ -384,13 +384,23 @@ int source(char *script) {
 int exec_command(char *args[], int arg_count) {
     //args are list of programs, then the scheduling type at the end (need to parse)
     int num_progs = arg_count - 1;
-    char *policy = args[arg_count - 1];
+    char *policy_str = args[arg_count - 1];
 
     // checking scheduling type. for now, it's only FCFS (first come first serve)
     //NOTE TO AAHAAN: AS U KEEP WRITING MORE PARTS, U NEED TO UPDATE THIS PART SO IT CAN TAKE UR SCHEDULING TYPE
-    if (strcmp(policy, "FCFS") != 0) {
-        printf("Unknown Policy\n");
-        return 1;
+
+//determine the policy type
+    Policy policy;
+
+    if (strcmp(policy_str, "FCFS") == 0) {
+        policy = FCFS_POLICY;
+    } else if (strcmp(policy_str, "SJF") == 0) {
+        policy = SJF_POLICY;
+    } else if (strcmp(policy_str, "RR") == 0) {
+        policy = RR_POLICY;
+    } else {
+	printf("Unknown policy\n");
+	return 1;
     }
 
     //can only be at more 3 programs
@@ -430,11 +440,15 @@ int exec_command(char *args[], int arg_count) {
     //creating pcb's and enqueueing them (fcfs order = order of args)
     for (int i = 0; i < num_progs; i++) {
         PCB *proc = make_pcb(starts[i], lens[i]);
-        enqueue(proc);
+        if(policy == SJF_POLICY) {
+		enqueue_sjf(proc); //insert sorted by job length
+	} else {
+		enqueue(proc); //FCFS or RR
+	} 
     }
 
     //execute all processes using scheduler until wait queue is empty
-    scheduler();
+    scheduler(policy);
 
     //if scheduler returns, all processes finished = success!!! 
     return 0;

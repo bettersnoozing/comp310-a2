@@ -2,6 +2,7 @@
 
 #include "readyqueue.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 static PCB *head = NULL;
 static PCB *tail = NULL;
@@ -22,6 +23,32 @@ void enqueue(PCB *process){
         tail = process; 
     }
 
+}
+
+//SJF enqueue: insert process sorted by code_len. Shortest job first
+void enqueue_sjf(PCB *process) {
+
+	if(!process) return;
+
+	//insert at head if the queue is empty or the job is the shortest
+	if(!head || process->code_len < head->code_len) {
+		process->next = head;
+		head = process;
+		if(!tail) tail = head;
+		return;
+	}
+
+	//traverse the queue in order to find the insertion point
+	PCB *cur = head;
+	while(cur->next && cur->next->code_len <= process->code_len) {
+		cur = cur.next;
+	}
+
+	process->next = cur->next;
+	cur->next = process;
+
+	//update the tail if inserted at the end
+	if(!process->next) tail = process;
 }
 
 PCB* dequeue(){

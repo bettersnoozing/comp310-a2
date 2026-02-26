@@ -407,6 +407,14 @@ int exec_command(char *args[], int arg_count) {
 	return 1;
     }
 
+   //check for background flag "#" in arguments
+   int background = 0; //default so run normally
+   int last_prog_index = num_progs - 1;
+   if(strcmp(args[last_prog_index], "#") == 0) {
+	background = 1; //found the background flag
+	num_progs--; //adjust the number of programs to ignore #
+   }
+
     //can only be at more 3 programs
     if (num_progs < 1 || num_progs > 3) {
         printf("Error: exec takes 1 to 3 programs\n");
@@ -440,6 +448,19 @@ int exec_command(char *args[], int arg_count) {
         }
         loaded++;
     }
+
+   //if background mode is requested, convert the remaining batch script into a PCB
+   PCB *batch_pcb = NULL;
+   if(background) {
+	//the batch script starts at the line after this exec command
+	int batch_start, batch_len;
+	if(store_remaining_script(&batch_start, &bacth_len) == 0) {
+		batch_pcb = make_pcb(batch_start, batch_len);
+		enqueue(batch_pcb); //batch script runs first
+	} else {
+		printf("Error: could not load batch script\n");
+	}
+   }
 
     //creating pcb's and enqueueing them (fcfs order = order of args)
     for (int i = 0; i < num_progs; i++) {

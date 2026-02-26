@@ -13,15 +13,17 @@
 #include <string.h>
 
 #define RR_QUANTUM 2 //number of instructions per RR time slice
+#define RR30_QUANTUM 30 //new for 1.2.5
 
 void scheduler(Policy policy) {
     while(!is_empty()) {
         PCB *cur = dequeue(); // get the head process
 
-        if(policy == RR_POLICY) {
-            //RR:  run up to RR_QUANTUM instructions
-            int instructions_to_run = RR_QUANTUM;
+        if(policy == RR_POLICY || policy == RR30_POLICY) {
+            //Decide the number of instructions to execute this turm
+            int instructions_to_run = (policy == RR_POLICY) ? RR_QUANTUM : RR30_QUANTUM;
 
+	   //execute instructions up to the quantum or until the process finishes
             while(cur->pc < cur->code_len && instructions_to_run > 0) {
                 char *line = get_line(cur->start_index + cur->pc);
                 if(line) {

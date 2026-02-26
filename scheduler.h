@@ -8,7 +8,8 @@ typedef enum {
 	FCFS_POLICY,
 	SJF_POLICY,
 	RR_POLICY,
-	AGING_POLICY
+	AGING_POLICY,
+	RR30_POLICY
 } Policy;
 
 

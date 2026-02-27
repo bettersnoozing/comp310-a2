@@ -20,10 +20,11 @@ for test_file in $TEST_DIR/*.txt; do
 
     base=$(basename "$test_file" .txt)
 
-    #running shell with test input
-    ./mysh < "$test_file" > output.tmp 2>&1
+    # Run the shell from within the test-cases directory
+    # so it can find the script files (P_*)
+    (cd $TEST_DIR && ../mysh < "$base.txt" > ../output.tmp 2>&1)
 
-    #finding the pairs
+    # Find the expected result files
     result1="$TEST_DIR/${base}_result.txt"
     result2="$TEST_DIR/${base}_result2.txt"
 

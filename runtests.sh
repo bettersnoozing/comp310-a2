@@ -19,7 +19,6 @@ for test_file in $TEST_DIR/*.txt; do
     fi
 
     base=$(basename "$test_file" .txt)
-    echo -n "Running $base ... "
 
     #running shell with test input
     ./mysh < "$test_file" > output.tmp 2>&1
@@ -41,10 +40,10 @@ for test_file in $TEST_DIR/*.txt; do
     fi
 
     if [ $matched -eq 1 ]; then
-        echo "PASS"
+        echo "$base TEST PASSED"
         PASSED=$((PASSED + 1))
     else
-        echo "FAIL"
+        echo "$base TEST FAILED"
         echo "Expected (first result if exists):"
         if [ -f "$result1" ]; then
             cat "$result1"

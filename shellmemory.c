@@ -110,7 +110,38 @@ int store_script(const char *filename, int *start_index, int *nb_lines){
     return 0; 
 }
 
-//return pointer to line stored at given index
+//store remaining lines from stdin as a script
+//0 on success and -1 on failure (out of memory)
+int store_remaining_script(int *start_index, int *nb_lines) {
+    int start = code_used; //remember where we start
+    int lines = 0;
+    char line[100];
+
+    //reading lines from stdin until EOF
+    while (fgets(line, sizeof(line), stdin)) {
+        if (code_used >= CODE_SIZE) {
+            // out of memory – free already stored lines
+            for (int i = start; i < code_used; i++) {
+                free(code_memory[i]);
+                code_memory[i] = NULL;
+            }
+            code_used = start;
+            return -1;
+        }
+        //remove trailing \n
+        int len = strlen(line);
+        if (len > 0 && line[len-1] == '\n')
+            line[len-1] = '\0';
+        code_memory[code_used] = strdup(line);
+        code_used++;
+        lines++;
+    }
+    *start_index = start;
+    *nb_lines = lines;
+    return 0;
+}
+
+//returning ptr to line stored at given index
 char* get_line(int index){
     if (index < 0 || index >= code_used){
         return NULL;

@@ -381,10 +381,6 @@ int source(char *script) {
     return 0;
 }
 
-int store_remaining_script(int *start, int *length) {
-    return -1;
-}
-
 // exec command- run multiple scripts concurrently 
 int exec_command(char *args[], int arg_count) {
     //args are list of programs, then the scheduling type at the end (need to parse)
@@ -463,14 +459,14 @@ int exec_command(char *args[], int arg_count) {
    //if background mode is requested, convert the remaining batch script into a PCB
    PCB *batch_pcb = NULL;
    if(background) {
-	//the batch script starts at the line after this exec command
-	int batch_start, batch_len;
-	if(store_remaining_script(&batch_start, &batch_len) == 0) {
-		batch_pcb = make_pcb(batch_start, batch_len);
-		enqueue(batch_pcb); //batch script runs first
-	} else {
-		printf("Error: could not load batch script\n");
-	}
+        //the batch script starts at the line after this exec command
+        int batch_start, batch_len;
+        if(store_remaining_script(&batch_start, &batch_len) == 0) {
+                batch_pcb = make_pcb(batch_start, batch_len);
+                enqueue_head(batch_pcb); //batch script runs first (put at front)
+        } else {
+                printf("Error: could not load batch script\n");
+        }
    }
 
     //creating pcb's and enqueueing them (fcfs order = order of args)

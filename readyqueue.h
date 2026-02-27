@@ -7,3 +7,4 @@ int is_empty(); //check to see if queue is empty
 void enqueue_sjf(PCB *proc);
 void enqueue_aging(PCB *proc);
 void age_ready_queue();
+void enqueue_head(PCB *proc);

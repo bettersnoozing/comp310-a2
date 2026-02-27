@@ -94,7 +94,7 @@ void enqueue_aging(PCB *process) {
     PCB *cur = head;
 
     //match example tie-breaking
-    while (cur->next && cur->next->job_score <= process->job_score) {
+    while (cur->next && cur->next->job_score < process->job_score) {
         cur = cur->next;
     }
 

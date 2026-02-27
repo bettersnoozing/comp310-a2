@@ -3,6 +3,8 @@
 #define SCHEDULER_H
 #include "pcb.h"
 
+extern int mt_enabled;
+
 //Scheduler policies
 typedef enum {
 	FCFS_POLICY,

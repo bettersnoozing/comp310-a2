@@ -381,8 +381,9 @@ int source(char *script) {
     return 0;
 }
 
-//global flag for multi-thread scheduling
-int mt_enabled = 0; //the defaul is single-threaded
+int store_remaining_script(int *start, int *length) {
+    return -1;
+}
 
 // exec command- run multiple scripts concurrently 
 int exec_command(char *args[], int arg_count) {

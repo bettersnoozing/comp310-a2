@@ -17,6 +17,7 @@
 #define RR30_QUANTUM 30 //new for 1.2.5
 
 int mt_enabled = 0; // default single-threaded
+int scheduler_running = 0;
 
 //worker thread function for MT scheduler
 void *worker_thread(void *arg) {
@@ -124,6 +125,7 @@ void run_process(PCB *cur, Policy policy) {
 }
 
 void scheduler(Policy policy) {
+    scheduler_running = 1;
     if (mt_enabled && (policy == RR_POLICY || policy == RR30_POLICY)) {
         // Multi-threaded scheduler
         pthread_t threads[2];
@@ -142,6 +144,7 @@ void scheduler(Policy policy) {
             run_process(cur, policy); //helper function, same code as before
         }
     }
+    scheduler_running = 0;
 }
 
 

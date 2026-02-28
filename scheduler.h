@@ -4,6 +4,7 @@
 #include "pcb.h"
 
 extern int mt_enabled;
+extern int scheduler_running;
 
 //Scheduler policies
 typedef enum {

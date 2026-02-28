@@ -400,10 +400,11 @@ void trim_newline(char *str) {
 
 // exec command- run multiple scripts concurrently 
 int exec_command(char *args[], int arg_count) {
-
+    if (!scheduler_running){
     pthread_mutex_lock(&queue_mutex);
     head = tail = NULL;
     pthread_mutex_unlock(&queue_mutex);
+    }
 
     if(arg_count < 2) {
 	printf("Error: exec requires at least 1 program and a policy\n");
@@ -502,17 +503,20 @@ int exec_command(char *args[], int arg_count) {
         //the batch script starts at the line after this exec command
         int batch_start, batch_len;
         if(store_remaining_script(&batch_start, &batch_len) == 0) {
-                batch_pcb = make_pcb(batch_start, batch_len);
-		if(policy == AGING_POLICY) enqueue_aging(batch_pcb, 1);
-		else if(policy == SJF_POLICY) enqueue_sjf(batch_pcb);
-		else enqueue(batch_pcb);
+                PCB *batch_pcb = make_pcb(batch_start, batch_len);
+		//if(policy == AGING_POLICY) enqueue_aging(batch_pcb, 1);
+		//else if(policy == SJF_POLICY) enqueue_sjf(batch_pcb);
+		//else enqueue(batch_pcb);
+		enqueue_head(batch_pcb);
         } else {
                 printf("Error: could not load batch script\n");
         }
    }
 
     //execute all processes using scheduler until wait queue is empty
-    scheduler(policy);
+    if (!scheduler_running){
+    	scheduler(policy);
+    }
 
     //if scheduler returns, all processes finished = success!!! 
     return 0;

@@ -101,7 +101,7 @@ void run_process(PCB *cur, Policy policy) {
                 age_ready_queue();
 
                 // reinsert current job using sorted insert
-                enqueue_aging(cur);
+                enqueue_aging(cur, 1);
             }
         }
         else {

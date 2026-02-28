@@ -5,9 +5,9 @@
 #include <stdio.h>
 #include <pthread.h>
 
-static PCB *head = NULL;
-static PCB *tail = NULL;
-static pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
+extern PCB *head;
+extern PCB *tail;
+extern pthread_mutex_t queue_mutex;
 
 //adding pcb to end of ready queue
 void enqueue(PCB *process){
@@ -75,45 +75,42 @@ void enqueue_sjf(PCB *process) {
     pthread_mutex_unlock(&queue_mutex);
 }
 
-void enqueue_aging(PCB *process) {
+//adding pcb to end of ready queue
+// mode = 0 for initial enqueue (ties go to end)
+// mode = 1 for re-enqueue after running (ties go to front)
+// readyqueue.c
+void enqueue_aging(PCB *process, int mode) {
     pthread_mutex_lock(&queue_mutex);
+
     if (!process) {
         pthread_mutex_unlock(&queue_mutex);
         return;
     }
 
-    process->next = NULL;
-
     // empty queue
-    if (!head) {
-        head = tail = process;
+    if (!head || process->job_score < head->job_score || 
+        (mode == 1 && process->job_score == head->job_score)) {
+        process->next = head;
+        head = process;
+        if (!tail) tail = head;
         pthread_mutex_unlock(&queue_mutex);
         return;
     }
 
     PCB *cur = head;
-    PCB *prev = NULL;
 
-    // move past nodes with strictly lower job_score
-    while (cur && cur->job_score < process->job_score) {
-        prev = cur;
+    // traverse queue for insertion
+    while (cur->next) {
+        if (process->job_score < cur->next->job_score) break;
+        if (process->job_score == cur->next->job_score && mode == 0) break; // normal insert at end of tie
         cur = cur->next;
     }
 
-    // insert after nodes with equal score (FIFO)
-    while (cur && cur->job_score == process->job_score) {
-        prev = cur;
-        cur = cur->next;
-    }
-
-    process->next = cur;
-    if (prev) {
-        prev->next = process;
-    } else {
-        head = process;
-    }
+    process->next = cur->next;
+    cur->next = process;
 
     if (!process->next) tail = process;
+
     pthread_mutex_unlock(&queue_mutex);
 }
 

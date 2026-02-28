@@ -489,7 +489,7 @@ int exec_command(char *args[], int arg_count) {
         int batch_start, batch_len;
         if(store_remaining_script(&batch_start, &batch_len) == 0) {
                 batch_pcb = make_pcb(batch_start, batch_len);
-		if(policy == AGING_POLICY) enqueue_aging(batch_pcb);
+		if(policy == AGING_POLICY) enqueue_aging(batch_pcb, 1);
 		else if(policy == SJF_POLICY) enqueue_sjf(batch_pcb);
 		else enqueue(batch_pcb);
 		//enqueue_aging(batch_pcb); //batch script runs first (put at front)
@@ -498,17 +498,18 @@ int exec_command(char *args[], int arg_count) {
         }
    }
 
-    //creating pcb's and enqueueing them (fcfs order = order of args)
     for (int i = 0; i < num_progs; i++) {
-        PCB *proc = make_pcb(starts[i], lens[i]);
-        // Enqueue based on policy
-        if(policy == AGING_POLICY) {
-		enqueue_aging(proc);
-	} else if(policy == SJF_POLICY) {
-		enqueue_sjf(proc); //insert sorted by job length
-	} else {
-		enqueue(proc); //FCFS or RR
-	}
+    	PCB *proc = make_pcb(starts[i], lens[i]);
+    	if (policy == AGING_POLICY) enqueue_aging(proc, 0);  // mode=0
+    	else if (policy == SJF_POLICY) enqueue_sjf(proc);
+    	else enqueue(proc); // FCFS or RR
+    }
+
+    // Enqueue batch PCB after normal PCBs
+    if (background && batch_pcb) {
+    	if (policy == AGING_POLICY) enqueue_aging(batch_pcb, 0); // mode=0
+    	else if (policy == SJF_POLICY) enqueue_sjf(batch_pcb);
+    	else enqueue(batch_pcb);
     }
 
     //execute all processes using scheduler until wait queue is empty

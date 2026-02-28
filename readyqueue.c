@@ -75,35 +75,45 @@ void enqueue_sjf(PCB *process) {
     pthread_mutex_unlock(&queue_mutex);
 }
 
-//insert sorted by job score with the lowest first
 void enqueue_aging(PCB *process) {
     pthread_mutex_lock(&queue_mutex);
-    if(!process) {
+    if (!process) {
         pthread_mutex_unlock(&queue_mutex);
         return;
     }
 
-    if(!head || process->job_score < head->job_score) {
-        process->next = head;
-        head = process;
-        if (!tail) tail = head;
+    process->next = NULL;
+
+    // empty queue
+    if (!head) {
+        head = tail = process;
         pthread_mutex_unlock(&queue_mutex);
         return;
     }
 
     PCB *cur = head;
+    PCB *prev = NULL;
 
-    //match example tie-breaking
-    while (cur->next && cur->next->job_score < process->job_score) {
+    // move past nodes with strictly lower job_score
+    while (cur && cur->job_score < process->job_score) {
+        prev = cur;
         cur = cur->next;
     }
 
-    process->next = cur->next;
-    cur->next = process;
-
-    if(!process->next) {
-        tail = process;
+    // insert after nodes with equal score (FIFO)
+    while (cur && cur->job_score == process->job_score) {
+        prev = cur;
+        cur = cur->next;
     }
+
+    process->next = cur;
+    if (prev) {
+        prev->next = process;
+    } else {
+        head = process;
+    }
+
+    if (!process->next) tail = process;
     pthread_mutex_unlock(&queue_mutex);
 }
 

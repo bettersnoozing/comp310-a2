@@ -26,6 +26,14 @@
 #include "readyqueue.h"
 #include "scheduler.h"
 #include "interpreter.h"
+#include <pthread.h>
+
+// Process queue for scheduler
+PCB *head = NULL;
+PCB *tail = NULL;
+
+// Mutex to protect the queue
+pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 //arguments for this are n number of files, and final arg is the scheduling type
 int exec_command(char *args[], int arg_count);
@@ -381,18 +389,55 @@ int source(char *script) {
     return 0;
 }
 
+// Helper to trim trailing whitespace/newline
+void trim_newline(char *str) {
+    size_t len = strlen(str);
+    while (len > 0 && (str[len-1] == '\n' || str[len-1] == ' ' || str[len-1] == '\t')) {
+        str[len-1] = '\0';
+        len--;
+    }
+}
+
 // exec command- run multiple scripts concurrently 
 int exec_command(char *args[], int arg_count) {
+
+    pthread_mutex_lock(&queue_mutex);
+    head = tail = NULL;
+    pthread_mutex_unlock(&queue_mutex);
+
+    if(arg_count < 2) {
+	printf("Error: exec requires at least 1 program and a policy\n");
+	return 1;
+    }
+
+    int num_progs = arg_count;
+
+    //Check for multi-threaded option
+    if(num_progs >= 1 && strcmp(args[num_progs - 1], "MT") == 0) {
+	mt_enabled = 1;
+	num_progs--; //exclude MT from program count
+    }
+
+   //check for background flag "#" in arguments
+   int background = 0; //default so run normally
+   if(num_progs >= 1 && strcmp(args[num_progs - 1], "#") == 0) {
+	background = 1; //found the background flag
+	num_progs--; //adjust the number of programs to ignore #
+   }
+
     //args are list of programs, then the scheduling type at the end (need to parse)
-    int num_progs = arg_count - 1;
-    char *policy_str = args[arg_count - 1];
+    char *policy_str = args[num_progs - 1];
+    trim_newline(policy_str);
+    num_progs--; //policy is not a program
 
-    // checking scheduling type. for now, it's only FCFS (first come first serve)
-    //NOTE TO AAHAAN: AS U KEEP WRITING MORE PARTS, U NEED TO UPDATE THIS PART SO IT CAN TAKE UR SCHEDULING TYPE
+    //can only be at more 3 programs
+    if (num_progs < 1 || num_progs > 3) {
+        printf("Error: exec takes 1 to 3 programs\n");
+        return 1;
+    }
 
-//determine the policy type
+    //determine the policy type
     Policy policy;
-
     if (strcmp(policy_str, "FCFS") == 0) {
         policy = FCFS_POLICY;
     } else if (strcmp(policy_str, "SJF") == 0) {
@@ -408,28 +453,9 @@ int exec_command(char *args[], int arg_count) {
 	return 1;
     }
 
-   //check for background flag "#" in arguments
-   int background = 0; //default so run normally
-   int last_prog_index = num_progs - 1;
-   if(strcmp(args[last_prog_index], "#") == 0) {
-	background = 1; //found the background flag
-	num_progs--; //adjust the number of programs to ignore #
-   }
-
-    //Check for multi-threaded option
-    if(num_progs >= 1 && strcmp(args[num_progs], "MT") == 0) {
-	mt_enabled = 1;
-	num_progs--; //exclude MT from program count
-    }
-
-    //can only be at more 3 programs
-    if (num_progs < 1 || num_progs > 3) {
-        printf("Error: exec takes 1 to 3 programs\n");
-        return 1;
-    }
-
     //checking for duplicate program names to avoid errors
     for (int i = 0; i < num_progs; i++) {
+	trim_newline(args[i]);
         for (int j = i + 1; j < num_progs; j++) {
             if (strcmp(args[i], args[j]) == 0) {
                 printf("Error: duplicate program name\n");
@@ -463,7 +489,10 @@ int exec_command(char *args[], int arg_count) {
         int batch_start, batch_len;
         if(store_remaining_script(&batch_start, &batch_len) == 0) {
                 batch_pcb = make_pcb(batch_start, batch_len);
-                enqueue_head(batch_pcb); //batch script runs first (put at front)
+		if(policy == AGING_POLICY) enqueue_aging(batch_pcb);
+		else if(policy == SJF_POLICY) enqueue_sjf(batch_pcb);
+		else enqueue(batch_pcb);
+		//enqueue_aging(batch_pcb); //batch script runs first (put at front)
         } else {
                 printf("Error: could not load batch script\n");
         }
@@ -472,13 +501,14 @@ int exec_command(char *args[], int arg_count) {
     //creating pcb's and enqueueing them (fcfs order = order of args)
     for (int i = 0; i < num_progs; i++) {
         PCB *proc = make_pcb(starts[i], lens[i]);
+        // Enqueue based on policy
         if(policy == AGING_POLICY) {
 		enqueue_aging(proc);
 	} else if(policy == SJF_POLICY) {
 		enqueue_sjf(proc); //insert sorted by job length
 	} else {
 		enqueue(proc); //FCFS or RR
-	} 
+	}
     }
 
     //execute all processes using scheduler until wait queue is empty

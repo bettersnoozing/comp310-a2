@@ -78,9 +78,8 @@ void enqueue_sjf(PCB *process) {
 //adding pcb to end of ready queue
 // mode = 0 for initial enqueue (ties go to end)
 // mode = 1 for re-enqueue after running (ties go to front)
-// readyqueue.c
 void enqueue_aging(PCB *process, int mode) {
-    pthread_mutex_lock(&queue_mutex);
+	pthread_mutex_lock(&queue_mutex);
 
     if (!process) {
         pthread_mutex_unlock(&queue_mutex);
@@ -102,7 +101,7 @@ void enqueue_aging(PCB *process, int mode) {
     // traverse queue for insertion
     while (cur->next) {
         if (process->job_score < cur->next->job_score) break;
-        if (process->job_score == cur->next->job_score && mode == 0) break; // normal insert at end of tie
+        if (mode == 1 && process->job_score == cur->next->job_score) break; // normal insert at end of tie
         cur = cur->next;
     }
 
@@ -111,7 +110,7 @@ void enqueue_aging(PCB *process, int mode) {
 
     if (!process->next) tail = process;
 
-    pthread_mutex_unlock(&queue_mutex);
+    pthread_mutex_unlock(&queue_mutex); 
 }
 
 //decrease score of all jobs in queue except the running one

@@ -52,12 +52,14 @@ void *worker_thread(void *arg) {
 }
 
 void run_process(PCB *cur, Policy policy) {
+	if(!cur) return;
+
 	 if(policy == RR_POLICY || policy == RR30_POLICY) {
             //Decide the number of instructions to execute this turm
             int instructions_to_run = (policy == RR_POLICY) ? RR_QUANTUM : RR30_QUANTUM;
 
 	   //execute instructions up to the quantum or until the process finishes
-            while(cur->pc < cur->code_len && instructions_to_run > 0) {
+	    for(int i = 0; i < instructions_to_run && cur->pc < cur->code_len; i++){
                 char *line = get_line(cur->start_index + cur->pc);
                 if(line) {
                     char *copy = strdup(line); //copy to avoid modifications
@@ -67,7 +69,7 @@ void run_process(PCB *cur, Policy policy) {
                     }
                 }
                 cur->pc++; //advance program counter
-                instructions_to_run--; //decrement quantum
+ //               instructions_to_run--; //decrement quantum
             }
 
             if(cur->pc < cur->code_len) {
@@ -107,19 +109,15 @@ void run_process(PCB *cur, Policy policy) {
         else {
             while(cur->pc < cur->code_len) {
                 char *line = get_line(cur->start_index + cur->pc); //get line of code to execute
-                if(line == NULL) {
-                    cur->pc++;
-                    continue;
-                }
-
-                char *copy = strdup(line); //making a copy to pass to parseInput to prevent modifications
-                if(copy) {
+                if(line) {
+                    char *copy = strdup(line); //making a copy to pass to parseInput to prevent modifications
+		    if(copy) {
                     parseInput(copy);
                     free(copy);
-                }
+                   }
+               }
                 cur->pc++; //move to next line
             }
-
             free_lines(cur->start_index, cur->code_len); //free code lines after finishing process
             free(cur); //free pcb
         }
